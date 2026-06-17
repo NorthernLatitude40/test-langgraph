@@ -5,7 +5,7 @@ from mcp.client.stdio import stdio_client
 
 server_params = StdioServerParameters(
     command="python",
-    args=["db_mcp_server.py"]
+    args=["server.py"]
 )
 
 async def main():

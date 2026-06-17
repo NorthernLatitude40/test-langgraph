@@ -17,22 +17,23 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.memory import MemorySaver
 from dotenv import load_dotenv
 
-# 引入新版通訊模組
+# 使用新版 HTTP-SSE 適配器
 from langchain_mcp_adapters.tools import load_mcp_tools
-from mcp import StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp.client.sse import sse_client
 from mcp.client.session import ClientSession
 from contextlib import AsyncExitStack
+from fastapi import FastAPI
+import uvicorn
 
-# ================= 1. 初始化與環境設定 =================
+# ================= 1. 環境設定與初始化 =================
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-st.set_page_config(page_title="官方智慧售票 Agent (RAG+MCP版)", page_icon="🎫")
+st.set_page_config(page_title="官方智慧售票 Agent (RAG+MCP網路版)", page_icon="🎫")
 st.title("🎫 官方智慧售票 Agent")
-st.caption("🚀 實戰：外掛 AnythingLLM RAG ＋ 本地 MySQL MCP ＋ 雙模型智慧切換 (執行緒安全版)")
+st.caption("🚀 實戰：外掛 AnythingLLM RAG ＋ 本地 MySQL MCP (雙 Uvicorn 連線版)")
 
 ANYTHINGLLM_BASE_URL = "http://localhost:3001/api/v1"
 ANYTHINGLLM_API_KEY = "5CWGCCF-QZMMSTT-HA2ESKA-DG24WBH"  
@@ -83,11 +84,11 @@ def get_weather(city: str) -> str:
     return f"暫時找不到 {city} 的天氣資訊。"
 
 
-# ================= 3. 核心重構：獨立的異步 Worker 執行緒 =================
+# ================= 3. 異步 Worker 執行緒 (基於 SSE 網路連線) =================
 
 class AgentWorker:
     """
-    負責在獨立執行緒中管理所有 Async 生命週期與 MCP 連線。
+    負責在獨立執行緒中管理所有 Async 生命週期與 MCP 網路連線。
     對 Streamlit 暴露出純同步 (Synchronous) 的介面。
     """
     def __init__(self):
@@ -111,24 +112,23 @@ class AgentWorker:
         return future.result() # 同步等待初始化完成
 
     async def _async_init(self):
-        """在背景 loop 執行的非同步初始化"""
+        """在背景 loop 執行的非同步網路初始化"""
         mcp_tools = []
         try:
-            server_params = StdioServerParameters(
-                command=sys.executable,
-                args=["db_mcp_server.py"]
-            )
-            print("INITIALIZING MCP SERVER IN WORKER THREAD...")
-            read, write = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            # 🌟 核心：去連接開在 8001 埠口的 MCP 伺服器
+            server_url = "http://localhost:8001/sse"
+            print(f"🔄 [Network] 正在嘗試連接 MCP 伺服器端點: {server_url}")
+            
+            read, write = await self.exit_stack.enter_async_context(sse_client(server_url))
             session = await self.exit_stack.enter_async_context(ClientSession(read, write))
             
-            await asyncio.wait_for(session.initialize(), timeout=10)
-            print("STDIO OK - MCP LINK ACTIVE IN WORKER")
+            await asyncio.wait_for(session.initialize(), timeout=5)
+            print("✨ [Network] MCP 伺服器連線成功，網路管道已打通！")
             
             mcp_tools = await load_mcp_tools(session)
-            print(f"✅ 成功託管並載入 {len(mcp_tools)} 個 MySQL MCP 工具")
+            print(f"✅ 成功託管並載入 {len(mcp_tools)} 個網路 MySQL MCP 工具")
         except Exception as e:
-            print(f"🛑 MCP 工具載入失敗，僅啟用本地工具。原因: {e}")
+            print(f"🛑 MCP 網路工具載入失敗，僅啟用本地客服工具。原因: {e}")
             traceback.print_exc()
 
         # 組裝 LangGraph
@@ -158,6 +158,7 @@ class AgentWorker:
                 "你現在是官方售票網站的智慧客服兼資料庫分析師。\n"
                 "1. 當使用者詢問退票、場館規定時，優先呼叫 `search_official_knowledge_base`。\n"
                 "2. 當使用者詢問會員消費、庫存、訂單、或要求查詢資料庫時，請使用對應的 MySQL 工具。\n"
+                "3. 當使用者要求執行測試或評估時，請呼叫 `run_agent_evaluation` 工具。\n"
                 "請嚴格根據工具返回的內容來回答，保持誠實。回答時請精簡扼要，並直接給出答案。"
             )
             messages_with_system = [("system", system_message)] + state["messages"]
@@ -191,29 +192,62 @@ class AgentWorker:
         self.app = workflow.compile(checkpointer=memory)
 
     def sync_invoke(self, inputs: dict, config: dict) -> dict:
-        """提供給 Streamlit 呼叫的純同步介面"""
+        """提供給 Streamlit 與 FastAPI 呼叫的純同步介面"""
         future = asyncio.run_coroutine_threadsafe(
             self.app.ainvoke(inputs, config), 
             self.loop
         )
-        return future.result() # 同步阻塞等待背景執行緒回傳結果
+        return future.result()
 
 
-# 使用 Streamlit 資源快取確保 Worker 全域唯一且不重複初始化
+# ================= 4. FastAPI 隱形後端 (大腦 8000 埠口) =================
+
+api_app = FastAPI()
+
+@api_app.post("/agent")
+def agent_api_endpoint(payload: dict):
+    """讓外部的 Harness 測試工具可以透過 http://localhost:8000/agent 戳到大腦"""
+    user_query = payload.get("message")
+    config = {"configurable": {"thread_id": "harness_test_thread"}}
+    inputs = {"messages": [("user", user_query)]}
+    
+    # 🌟 修正：此時全域的 agent_worker 已經百分之百建立好了
+    worker = get_current_worker_instance()
+    result = worker.sync_invoke(inputs, config)
+    final_reply = result["messages"][-1].content
+    return {"output": final_reply}
+
+def run_bg_api():
+    print("🚀 [FastAPI] 大腦對外 API 服務正在啟動，監聽 http://127.0.0.1:8000 ...")
+    uvicorn.run(api_app, host="127.0.0.1", port=8000, log_level="warning")
+
+
+# ================= 5. 確保全域唯一實例與背景 API 啟動 =================
+
 @st.cache_resource
 def get_agent_worker():
+    # 1. 先把大腦核心物件執行起來
     worker = AgentWorker()
     worker.start()
+    
+    # 2. 確定大腦好端端地建立了，再把開在 8000 埠口的 FastAPI 拉起來
+    print("🌟 正在啟動背景 8000 埠口 API 服務...")
+    bg_thread = threading.Thread(target=run_bg_api, daemon=True)
+    bg_thread.start()
+    
     return worker
 
-# 取得同步化的 Worker 實例
+def get_current_worker_instance():
+    return get_agent_worker()
+
+# 真正的啟動點
 agent_worker = get_agent_worker()
 
 
-# ================= 4. Streamlit 介面渲染 (純同步流程) =================
+# ================= 6. Streamlit 介面渲染 (純同步流程) =================
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
-        {"role": "assistant", "content": "您好！我已經成功外掛了 AnythingLLM 知識庫與本地 MySQL 資料庫。請隨時提問客服問題（如：怎麼退票？）或要求我分析資料庫數據（如：幫我查張小明買了什麼？）"}
+        {"role": "assistant", "content": "您好！我已經成功外掛了 AnythingLLM 知識庫與網路版 MySQL 資料庫。請隨時提問客服問題或要求我跑評估測試集。"}
     ]
 
 for msg in st.session_state.chat_history:
@@ -227,17 +261,15 @@ if user_query := st.chat_input("請輸入您的問題..."):
     
     with st.chat_message("assistant"):
         with st.spinner("Agent 決策中..."):
-            config = {"configurable": {"thread_id": "ticket_agent_stream"}}
+            config = {"configurable": {"thread_id": "ticket_agent_stream_network"}}
             inputs = {"messages": [("user", user_query)]}
             
             try:
-                # 💡 這裡變成了純同步呼叫，完全沒有 nest_asyncio，也沒有 Async 地獄
                 result = agent_worker.sync_invoke(inputs, config)
-                
                 final_reply = result["messages"][-1].content
                 st.write(final_reply)
                 st.session_state.chat_history.append({"role": "assistant", "content": final_reply})
             except Exception as final_error:
-                print("❌ [Agent 執行階段崩難] 詳細錯誤軌跡如下：")
+                print("❌ [Agent 執行階段崩潰] 詳細錯誤軌跡如下：")
                 traceback.print_exc() 
                 st.error(f"🛑 系統錯誤詳細資訊：{str(final_error)}")
