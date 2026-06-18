@@ -6,6 +6,7 @@ import pymysql
 from fastapi import FastAPI
 import uvicorn
 from mcp.server.fastmcp import FastMCP
+from src.mcp_server.graph_data import graph
 
 # 日誌配置
 log_file = os.path.join(os.path.dirname(__file__), "mcp_server.log")
@@ -112,6 +113,16 @@ def create_agent_order(
     finally:
         if "connection" in locals() and connection.open:
             connection.close()
+
+@mcp.tool()
+def get_customer_products(name: str):
+    """
+    查询指定客户购买过的商品
+    Args:
+        name: 客户姓名，例如 张三
+    """
+    print("收到参数:", name)
+    return graph[name]["BUY"]
 
 
 # ================= 3. 啟動內建網路伺服器 =================

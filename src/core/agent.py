@@ -1,3 +1,5 @@
+# core/agent.py
+import time
 from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, START
 from langgraph.graph.message import add_messages
@@ -22,69 +24,75 @@ class Agent:
         self.app = self._build_graph()
 
     def _model(self):
+        # 🎯 核心：這裡一定要綁定完備的 tools，LangChain 會自動幫我們把 Schema 傳給 Gemini
         gemini = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            api_key=GEMINI_API_KEY,
-            temperature=0
+            model="gemini-2.5-flash", api_key=GEMINI_API_KEY, temperature=0
         ).bind_tools(self.tools)
 
         openrouter = ChatOpenAI(
             model="google/gemma-4-31b-it:free",
+            # model="meta-llama/llama-3-8b-instruct:free",
             openai_api_key=OPENROUTER_API_KEY,
             openai_api_base="https://openrouter.ai/api/v1",
+            temperature=0,
         ).bind_tools(self.tools)
 
         def call(state: State):
-            msgs = state["messages"]
+            current_messages = state["messages"]
 
-            sys = ("你是售票客服，必须优先使用工具。")
-            messages = [("system", sys)] + msgs
+            # 🛠️ 乾淨、精準的提示詞，明確告訴它你已經是圖譜分析師，且直接給答案
+            sys = (
+                "你現在是官方售票網站的智慧客服兼知識圖譜分析師。請嚴格遵守以下原則：\n\n"
+                "【工具調用決策】\n"
+                "1. 查詢用戶購買歷史/名下商品：必須且只能呼叫 `get_customer_products` 工具，傳入參數格式必須為：{'name': '張三'}。禁止自行包裝額外的外殼。\n"
+                "2. 建立新訂單/代客下單：當用戶明確要求購票、下單時，呼叫 `create_agent_order` 工具。\n"
+                "3. 複雜數據分析：當上述快捷工具無法滿足需求時，才使用 `query_mysql`。\n"
+                "4. 退票與場館規定：優先呼叫 `search_official_knowledge_base`。\n"
+                "5. 天氣查詢：呼叫 `get_weather`。\n\n"
+                "【核心原則】\n"
+                "1. 誠實性：工具返回的列表（例如 ['iPhone15', 'MacBook']）即為用戶購買的全部商品。請直接根據列表內容回答用戶，回答要精簡扼要，直接給出答案，禁止重複調用工具！\n"
+                "2. 若工具未返回數據，請直接告知用戶無法查詢到對應記錄。"
+            )
+
+            messages_with_sys = [("system", sys)] + current_messages
 
             try:
-                return {"messages": [gemini.invoke(messages)]}
-            except:
-                return {"messages": [openrouter.invoke(messages)]}
+                print("🔄 正在嘗試使用 [主要模型: Gemini] 處理請求...")
+                response = gemini.invoke(messages_with_sys)
+                print("🎉 [Gemini] 請求成功！")
+            except Exception as gemini_error:
+                print(f"⚠️ [Gemini] 發生異常: {gemini_error}")
+                if OPENROUTER_API_KEY:
+                    try:
+                        print("⏳ 觸發配額限制，安全等待 1.5 秒後切換備援...")
+                        time.sleep(1.5)
+                        print("🚀 啟動備援機制，切換至 [備用模型: OpenRouter]...")
+                        response = openrouter.invoke(messages_with_sys)
+                        print("🎉 [OpenRouter] 備援成功！")
+                    except Exception as router_error:
+                        raise RuntimeError(f"所有模型均失效。最後錯誤: {router_error}")
+                else:
+                    raise gemini_error
+
+            # 🎯 這裡只做最純粹的日誌列印，不干涉、不清洗任何參數，讓 LangChain / LangGraph 走原生校驗
+            if hasattr(response, "tool_calls") and response.tool_calls:
+                print("\n================ 🛠️ MCP TOOL CALL DETECTED ================")
+                for tool_call in response.tool_calls:
+                    print(f"📌 [工具名稱]: {tool_call.get('name')}")
+                    print(f"🔑 [原始參數]: {tool_call.get('args')}")
+                print("===========================================================\n")
+
+            return {"messages": [response]}
 
         return call
 
-    def _call_model(self, state: State):
-        system_message = (
-            "你現在是官方售票網站的智慧客服兼資料庫分析師。\n"
-            "1. 當使用者詢問退票、場館規定時，優先呼叫 `search_official_knowledge_base`。\n"
-            "2. 當使用者詢問會員消費、庫存、訂單、或要求查詢資料庫時，請使用對應的 MySQL 工具。\n"
-            "3. 當使用者要求執行測試或評估時，請呼叫 `run_agent_evaluation` 工具。\n"
-            "請嚴格根據工具返回的內容來回答，保持誠實。回答時請精簡扼要，並直接給出答案。"
-        )
-        messages_with_system = [("system", system_message)] + state["messages"]
-        
-        try:
-            print("🔄 正在嘗試使用 [主要模型: Gemini] 處理請求...")
-            response = self.gemini_model.invoke(messages_with_system)
-            print("🎉 [Gemini] 請求成功！")
-            return {"messages": [response]}
-        except Exception as gemini_error:
-            print(f"⚠️ [Gemini] 發生異常: {gemini_error}")
-            if OPENROUTER_API_KEY:
-                try:
-                    print("🚀 啟動備援機制，切換至 [備用模型: OpenRouter]...")
-                    response = self.openrouter_model.invoke(messages_with_system)
-                    print("🎉 [OpenRouter] 備援成功！")
-                    return {"messages": [response]}
-                except Exception as router_error:
-                    raise RuntimeError(f"所有模型均失效。最後錯誤: {router_error}")
-            else:
-                raise gemini_error
-
     def _build_graph(self):
         graph = StateGraph(State)
-
         graph.add_node("agent", self._model())
         graph.add_node("tools", self.tool_node)
-
         graph.add_edge(START, "agent")
         graph.add_conditional_edges("agent", tools_condition)
         graph.add_edge("tools", "agent")
-
         return graph.compile(checkpointer=MemorySaver())
 
     async def ainvoke(self, inputs, config):

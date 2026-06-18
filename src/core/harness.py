@@ -4,7 +4,7 @@ import threading
 import traceback
 from contextlib import AsyncExitStack
 
-# 🌟 🟢 修正 1：官方最新 SDK 标准导入路径
+# 🌟 官方最新 SDK 标准导入路径
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 
@@ -46,16 +46,25 @@ class AgentHarness:
             tools_response = await self.mcp_session.list_tools()
             mcp_tools = tools_response.tools
 
-            # 🌟 核心修正：將 mcp.types.Tool 封裝轉換為 LangChain 認識的 @tool 函數（适配器模式）
-            from langchain_core.tools import tool as lc_tool
+            # 🌟 核心修正：改用 StructuredTool 显式绑定遠端 MCP 工具的 JSON Schema 结构
+            from langchain_core.tools import StructuredTool
 
             for remote_tool in mcp_tools:
                 # 這裡使用動態閉包，讓 LangChain 呼叫該工具時，Harness 自動發送 RPC 請求給遠端 MCP Server
                 def make_mcp_wrapper(tool_name):
                     async def mcp_wrapper(**kwargs):
+                        # ====== 💡 核心修复代码开始 ======
+                        # 如果发现参数被错误地包在了一个叫 'kwargs' 的键里，直接把它提出来
+                        actual_args = (
+                            kwargs.get("kwargs", kwargs)
+                            if "kwargs" in kwargs and len(kwargs) == 1
+                            else kwargs
+                        )
+                        # ====== 💡 核心修复代码结束 ======
+
                         # 調用常駐於 Harness 內部的會話發送請求
                         res = await self.mcp_session.call_tool(
-                            tool_name, arguments=kwargs
+                            tool_name, arguments=actual_args
                         )
                         # 回傳遠端資料庫或服務的純文字結果
                         return "".join(
@@ -66,12 +75,26 @@ class AgentHarness:
                             ]
                         )
 
-                    mcp_wrapper.__name__ = tool_name
-                    mcp_wrapper.__doc__ = remote_tool.description or "MCP Remote Tool"
                     return mcp_wrapper
 
-                # 包裝成標準 LangChain 工具
-                constructed_tool = lc_tool(make_mcp_wrapper(remote_tool.name))
+                # 🎯 从远端 MCP 传入的工具定义中取出参数结构 input_schema
+                # 有些 SDK 为字典，有些为对象，这里做一层鲁棒兼容
+                raw_schema = getattr(remote_tool, "input_schema", None)
+                if isinstance(
+                    raw_schema, os if "os" in locals() else object
+                ) or hasattr(raw_schema, "model_json_schema"):
+                    tool_schema = raw_schema
+                else:
+                    tool_schema = None
+
+                # 🎯 使用 StructuredTool 替代普通的 lc_tool
+                constructed_tool = StructuredTool.from_function(
+                    name=remote_tool.name,
+                    description=remote_tool.description or "MCP Remote Tool",
+                    coroutine=make_mcp_wrapper(remote_tool.name),
+                    # 将遠端工具所需要的真实参数结构注册进来，彻底终结模型识别出 'kwargs' 的情况
+                    args_schema=tool_schema,
+                )
                 lc_tools.append(constructed_tool)
 
             print(f"✅ [Harness] 成功動態轉換並裝載 {len(lc_tools)} 個網路生態工具")
