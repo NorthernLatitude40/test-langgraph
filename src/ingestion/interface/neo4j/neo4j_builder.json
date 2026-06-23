@@ -1,0 +1,29 @@
+{
+    "concepts": [
+        {"id": "Concept_User", "label": "User", "description": "使用者節點"},
+        {"id": "Concept_Product", "label": "Product", "description": "商品節點"},
+    ],
+    "properties": [
+        {
+            "id": "Prop_UserId",
+            "domain": "Concept_User",
+            "name": "userId",
+            "type": "STRING",
+        },
+        {
+            "id": "Prop_Price",
+            "domain": "Concept_Product",
+            "name": "price",
+            "type": "FLOAT",
+        },
+    ],
+    "relationships": [
+        {
+            "id": "Rel_Buy",
+            "source": "Concept_User",
+            "target": "Concept_Product",
+            "type": "BUY",
+            "properties": [{"name": "buyDate", "type": "DATETIME"}],
+        }
+    ],
+}

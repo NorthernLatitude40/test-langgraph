@@ -1,0 +1,13 @@
+{
+  "source_id": "excel_sales_2026",
+  "sheets": [
+    {
+      "sheet_name": "Orders",
+      "columns": [
+        { "name": "customer_id", "detected_type": "STRING", "is_nullable": false },
+        { "name": "product_id", "detected_type": "STRING", "is_nullable": false },
+        { "name": "amount", "detected_type": "NUMERIC", "is_nullable": true }
+      ]
+    }
+  ]
+}

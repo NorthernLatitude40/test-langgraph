@@ -1,0 +1,10 @@
+{
+  "mapping_rules_ref": "v1.0.0",
+  "payload": {
+    "sheet_name": "Orders",
+    "rows": [
+      { "customer_id": "C001", "product_id": "P100", "amount": 1500 },
+      { "customer_id": "C002", "product_id": "P200", "amount": 3500 }
+    ]
+  }
+}

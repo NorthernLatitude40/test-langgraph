@@ -1,0 +1,23 @@
+{
+    "ontology_version": "v1.0.0",
+    "ontology": {"concepts": "[...]", "relationships": "[...]"},
+    "mapping_rules": [
+        {
+            "source_sheet": "Orders",
+            "map_to_node": {
+                "concept_id": "Concept_User",
+                "primary_key": "customer_id",
+                "properties": {"userId": "customer_id"},
+            },
+        },
+        {
+            "source_sheet": "Orders",
+            "map_to_edge": {
+                "relationship_id": "Rel_Buy",
+                "source_key": "customer_id",
+                "target_key": "product_id",
+                "properties": {"buyDate": "CURRENT_TIMESTAMP"},
+            },
+        },
+    ],
+}

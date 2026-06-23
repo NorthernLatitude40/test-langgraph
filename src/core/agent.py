@@ -26,7 +26,7 @@ class Agent:
     def _model(self):
         # 🎯 核心：這裡一定要綁定完備的 tools，LangChain 會自動幫我們把 Schema 傳給 Gemini
         gemini = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash", api_key=GEMINI_API_KEY, temperature=0
+            model="gemini-3.5-flash", api_key=GEMINI_API_KEY, temperature=0
         ).bind_tools(self.tools)
 
         openrouter = ChatOpenAI(
@@ -91,7 +91,14 @@ class Agent:
     def _build_graph(self):
         graph = StateGraph(State)
         graph.add_node("agent", self._model())
-        graph.add_node("tools", self.tool_node)
+        graph.add_node(
+            "tools",
+            self.tool_node,
+            retry={
+                "max_attempts": 1,
+                "retry_on": Exception,  # 遇到任何錯誤都觸發此原則（這裡設 1 次代表直接放棄重試）
+            },
+        )
         graph.add_edge(START, "agent")
         graph.add_conditional_edges("agent", tools_condition)
         graph.add_edge("tools", "agent")

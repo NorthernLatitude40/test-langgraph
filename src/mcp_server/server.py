@@ -8,6 +8,14 @@ import uvicorn
 from mcp.server.fastmcp import FastMCP
 from src.mcp_server.graph_data import graph
 from neo4j import GraphDatabase
+from typing import List
+from src.ingestion.interface.ontology.output_contract import MappingRule
+
+# 引入剛才抽離出來的獨立工具類別與參數契約
+from src.mcp_server.tools.graph_ingestion_tools import (
+    GraphIngestionTools,
+    IngestionInput,
+)
 
 # 日誌配置
 log_file = os.path.join(os.path.dirname(__file__), "mcp_server.log")
@@ -43,10 +51,47 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password123")
 # 全局唯一的 driver 实例
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
+# ==========================================
+# 實例化抽離出來的圖匯入工具箱，共享全局唯一的 driver
+# ==========================================
+ingestion_toolbox = GraphIngestionTools(neo4j_driver=driver)
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ==========================================
+# 新增核心功能：大數據圖譜構建雙工具（優雅橋接至類別方法）
+# ==========================================
+
+
+@mcp.tool()
+def inspect_excel_schema(file_path: str) -> str:
+    """
+    當使用者提供一個 Excel 檔案路徑時，優先使用此工具。
+    它會掃描 Excel 並回傳所有工作表(Sheets)的名稱、欄位名稱與系統標準型態。
+    """
+    return ingestion_toolbox.inspect_dataset_schema(file_path)
+
+
+@mcp.tool()
+def execute_excel_to_graph(file_path: str, mapping_rules: List[MappingRule]) -> str:
+    """
+    在分析完 Schema 並決定好圖對應規則(Mapping Rules)後，使用此工具將 rows 全量寫入 Neo4j。
+    Args:
+        mapping_rules: 格式必須嚴格遵守以下範例：
+        [
+            {
+                "source_sheet": "Orders",
+                "map_to_node": [{"concept_id": "ns0__VIPCustomer", "primary_key": "customer_id"}],
+                "map_to_edge": [{"source_key": "customer_id", "target_key": "product_id", "relationship_id": "ns0__bought"}]
+            }
+        ]
+    """
+    # 這裡可以直接調用，FastMCP 會自動依據 args_schema 將傳入的 json 轉為對應的 MappingRule 結構
+    return ingestion_toolbox.execute_graph_ingestion(file_path, mapping_rules)
 
 
 # ==========================================
@@ -135,14 +180,19 @@ def get_customer_products(name: str) -> list:
     支持传入具体人名（如 ZhangSan1），也支持传入全局概念名称（如 Customer 或 VIPCustomer）。
     只要用户提问涉及“谁买了什么”、“哪些人买了什么商品”、“语义推理查询”，必须且只能调用此工具。
     """
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print(f"[LOG] 工具进入 - 目标名称: '{name}'")
-    
+
     search_name = name.strip()
-    
+
     # 转换为小写判断是否为全局本体概念
-    is_global_query = search_name.lower() in ["customer", "vipcustomer", "product", "electronicproduct"]
-    
+    is_global_query = search_name.lower() in [
+        "customer",
+        "vipcustomer",
+        "product",
+        "electronicproduct",
+    ]
+
     if is_global_query:
         print("[LOG] 判定结果: 全局本体概念推理")
         query = """
@@ -164,7 +214,7 @@ def get_customer_products(name: str) -> list:
           AND any(lbl IN labels(c) WHERE lbl ENDS WITH subCustomerLabel)
           AND any(lbl IN labels(p) WHERE lbl ENDS WITH subProductLabel)
           
-        RETURN c.uri AS customer_uri, p.uri AS product_uri
+        RETURN DISTINCT c.uri AS customer_uri, p.uri AS product_uri
         """
         params = {}
     else:
@@ -186,7 +236,7 @@ def get_customer_products(name: str) -> list:
           AND any(lbl IN labels(c) WHERE lbl ENDS WITH subCustomerLabel)
           AND any(lbl IN labels(p) WHERE lbl ENDS WITH subProductLabel)
           
-        RETURN c.uri AS customer_uri, p.uri AS product_uri
+        RETURN DISTINCT c.uri AS customer_uri, p.uri AS product_uri
         """
         params = {"customer_name": search_name}
 
@@ -194,28 +244,28 @@ def get_customer_products(name: str) -> list:
         with driver.session() as session:
             result = session.run(query, **params)
             records_list = []
-            
+
             for record in result:
                 c_uri = record["customer_uri"]
                 p_uri = record["product_uri"]
                 print(f"[LOG] 成功推理召回数据 -> 客户: {c_uri}, 商品: {p_uri}")
-                
+
                 # Python 层的 URI 清洗
                 c_name = c_uri.split("/")[-1] if "/" in c_uri else c_uri
                 p_name = p_uri.split("/")[-1] if "/" in p_uri else p_uri
-                
+
                 if is_global_query:
                     records_list.append(f"{c_name}(购买了){p_name}")
                 else:
                     records_list.append(p_name)
-                    
+
             print(f"[LOG] 最终返回给 Agent 的数据: {records_list}")
-            print("="*50 + "\n")
+            print("=" * 50 + "\n")
             return records_list
-            
+
     except Exception as e:
         print(f"[ERROR] 执行失败: {str(e)}")
-        print("="*50 + "\n")
+        print("=" * 50 + "\n")
         return [f"ERROR: {str(e)}"]
 
 

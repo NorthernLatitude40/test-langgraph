@@ -1,0 +1,13 @@
+{
+  "status": "SUCCESS",
+  "job_id": "job_99281_20260621",
+  "metrics": {
+    "nodes_created": 4,
+    "nodes_deleted": 0,
+    "relationships_created": 2,
+    "properties_set": 6,
+    "labels_added": 4,
+    "execution_time_ms": 145
+  },
+  "errors": []
+}

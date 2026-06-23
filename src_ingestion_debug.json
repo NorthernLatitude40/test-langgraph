@@ -1,0 +1,31 @@
+{
+  "file_path": "c:\\Users\\ww\\langgraph_workspace\\src\\ingestion\\test_sales_data.xlsx",
+  "mapping_rules": [
+    {
+      "source_sheet": "Orders",
+      "map_to_node": [
+        {
+          "concept_id": "ns0__VIPCustomer",
+          "primary_key": "customer_id",
+          "properties": {}
+        },
+        {
+          "concept_id": "ns0__ElectronicProduct",
+          "primary_key": "product_id",
+          "properties": {}
+        }
+      ],
+      "map_to_edge": [
+        {
+          "relationship_id": "ns0__bought",
+          "source_key": "customer_id",
+          "target_key": "product_id",
+          "properties": {
+            "order_date": "order_date",
+            "amount": "amount"
+          }
+        }
+      ]
+    }
+  ]
+}
