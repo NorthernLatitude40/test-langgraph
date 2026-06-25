@@ -38,14 +38,15 @@ User ──> Agent ──> Ontology (Schema) ──> Knowledge Graph ──> Rea
 
 OntoAgent adopts a layered architecture separating core reasoning, state workflows, and tool communication protocol.
 
-````text
-![Architecture](docs/images/architecture.png)
-````
+![architecture](C:\Users\ww\langgraph_workspace\docs\images\architecture.png)
+
+
 ---
 
 ## 🚀 Features
 
 Core Capabilities
+
 ✅ LangGraph Workflow: Complex multi-step routing, loops, and precise agent state management.
 
 ✅ MCP Integration: Native Model Context Protocol support to seamlessly connect with hundreds of standard tools.
@@ -57,6 +58,7 @@ Core Capabilities
 ✅ FastAPI Service: Out-of-the-box RESTful APIs and WebSocket endpoints for production integration.
 
 Roadmap / In Progress
+
 🚧 Evaluation Harness: Automated frameworks for benchmarking graph reasoning accuracy.
 
 🚧 Docker Deployment: One-click multi-container deployment orchestration.
@@ -91,7 +93,7 @@ Installation & Setup
 - 4.Run the Application
   python run.py
 
-  ---
+---
 
 ## 📺 Live Demo & Capabilities
 
