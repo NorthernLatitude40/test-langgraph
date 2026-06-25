@@ -1,137 +1,130 @@
 <p align="center">
-  <img src="assets/logo.png" width="180">
+  <img src="assets/logo.png" width="180" alt="OntoAgent Logo">
 </p>
 
 <h1 align="center">OntoAgent</h1>
 
 <p align="center">
-Knowledge-Driven Agent Framework
+  <strong>A Knowledge-Driven, Ontology-Powered Agent Framework</strong>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/LangGraph-Agent-green?style=flat-square" alt="LangGraph">
+  <img src="https://img.shields.io/badge/Neo4j-Graph-orange?style=flat-square&logo=neo4j" alt="Neo4j">
+  <img src="https://img.shields.io/badge/MCP-Enabled-purple?style=flat-square" alt="MCP">
 </p>
 
+
 <p align="center">
+  Build next-generation AI agents powered by Ontology reasoning, 
+  Knowledge Graphs, and the MCP (Model Context Protocol) tool ecosystem.
+</p>
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
+---
 
-![LangGraph](https://img.shields.io/badge/LangGraph-Agent-green)
+## 🌟 Why OntoAgent?
 
-![Neo4j](https://img.shields.io/badge/Neo4j-Graph-orange)
+Traditional LLM agents often struggle with unresolvable hallucinations and untraceable tool calls. **OntoAgent** bridges LLMs with structured domain knowledge, introducing an **Ontology-Driven Reasoning Layer**.
 
-![MCP](https://img.shields.io/badge/MCP-Enabled-purple)
+User ──> Agent ──> Ontology (Schema) ──> Knowledge Graph ──> Reasoning ──> Tool Execution
 
-Build AI Agents with:
+* **Explainable Reasoning:** Every tool invocation and decision is grounded by ontological constraints.
+* **Structured Knowledge Management:** Native alignment with Graph databases (Neo4j) for deep semantic memory.
+* **Scalable Workflows:** Flexible orchestration driven by state-of-the-art graph routing.
 
-\- LangGraph Workflow
-\- MCP Tool Ecosystem
-\- Knowledge Graph (Neo4j)
-\- Ontology-based Reasoning
-\- Agent Evaluation Harness
+---
 
-\---
+## 🏗️ Architecture
 
-\## Why OntoAgent?
+OntoAgent adopts a layered architecture separating core reasoning, state workflows, and tool communication protocol.
 
-User
-↓
-Agent
-↓
-Ontology
-↓
-Knowledge Graph
-↓
-Reasoning
-↓
-Tool
+````text
+![Architecture](docs/images/architecture.png)
+````
+---
 
-making agents more explainable, structured and scalable.
+## 🚀 Features
 
-## architecture
+Core Capabilities
+✅ LangGraph Workflow: Complex multi-step routing, loops, and precise agent state management.
 
-┌─────────────┐
-│ User                                    │
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│ OntoAgent                       │
-│ (LangGraph) │
-└──────┬──────┘
-       │
- ┌─────┴─────┐
- │ MCP Layer │
- └─────┬─────┘
-       │
- ┌─────┼─────┐
- │     │     │
- ▼     ▼     ▼
+✅ MCP Integration: Native Model Context Protocol support to seamlessly connect with hundreds of standard tools.
 
-Neo4j  Ontology  External APIs
-Graph                     / Tools
+✅ Neo4j Knowledge Graph: Production-ready Cypher generation and graph-based retrieval augmented generation (GraphRAG).
 
-## features
+✅ Ontology Support: Structural constraints definitions ensuring the agent reasons within deterministic boundaries.
 
-✅ LangGraph Workflow
+✅ FastAPI Service: Out-of-the-box RESTful APIs and WebSocket endpoints for production integration.
 
-✅ MCP Integration
+Roadmap / In Progress
+🚧 Evaluation Harness: Automated frameworks for benchmarking graph reasoning accuracy.
 
-✅ Neo4j Knowledge Graph
+🚧 Docker Deployment: One-click multi-container deployment orchestration.
 
-✅ Ontology Support
+🚧 Multi-Agent Support: Multi-agent collaboration protocols governed by shared ontologies.
 
-✅ FastAPI Service
+---
 
-🚧 Evaluation Harness
+## 🛠️ Quick Start
 
-🚧 Docker Deployment
+Prerequisites
 
-🚧 Multi-Agent Support
+- Python 3.12+
 
-Quick Start
+- Neo4j Database instance (Local or AuraDB)
 
-git clone ...
+Installation & Setup
 
-cp .env.example .env
+- 1.Clone the repository
 
-docker compose up
+  git clone [https://github.com/your-username/OntoAgent.git](https://github.com/your-username/OntoAgent.git)
+  cd OntoAgent
 
-python run.py
+- 2.Configure Environment Variables
+  cp .env.example .env
 
-##Demo
+  Edit .env and configure your LLM, Neo4j credentials, and MCP endpoints.
 
-Question:
+- 3.Spin up Infrastructure (Optional)
+  docker compose up -d
 
-Find all products purchased by a customer.
+- 4.Run the Application
+  python run.py
 
-Answer:
+  ---
 
-...
+## 📺 Live Demo & Capabilities
 
-![alt text](./docs/images/image.png)
+Case Study: Semantic E-Commerce Query
 
-![alt text](./docs/images/image-1.png)
+Question: "Find all products purchased by a customer named Alice and explain their semantic connections."
 
-![alt text](./docs/images/e3c9c66e34854e6816dffb4b9fdc66a5.png)
+How OntoAgent Processed the Request:
 
-![alt text](./docs/images/5c7132b9260f40197e52c3703c15c4a1.png)
+- 1.Ontology Alignment: Maps "customer" and "products" to domain classes.
 
-![alt text](./docs/images/d8aa2620e65794798931547b4a5fefbb.png)
+- 2.KG Querying: Automatically generates optimized Cypher statements for Neo4j.
 
-![alt text](./docs/images/5a88da4abeef5dc25db81a3ef8670309.png)
+- 3.MCP Tool Execution: Fetches real-time stock levels for those products via external APIs.
 
-![alt text](./docs/images/4705eef702c2aa9ffda509b17807969b.png)
+---
 
-![alt text](./docs/images/0cc6511b5f519d58d4af73517c491be2.png)
+## 📖 Documentation Directory
 
-![alt text](./docs/images/4d241618b8b39e260dcc87b39a1940eb.png)
+Explore our detailed design specs and ecosystem strategy:
 
-##Documentation
+🏛️ Architecture Overview
 
-docs/
+  - [Model Context Protocol (MCP) Integration](https://www.google.com/search?q=./docs/architecture/mcp.md)
 
-architecture/
-├── mcp.md
-├── agent-api.md
-├── web-integration.md
+  - [Agent Core API Specs](https://www.google.com/search?q=./docs/architecture/agent-api.md)
 
-ecosystem/
-├── a2a.md
-├── platform-strategy.md
-├── agent-economy.md
+  - [Web Application Integration](https://www.google.com/search?q=./docs/architecture/web-integration.md)
+
+🌐 Ecosystem & Strategy
+
+  - [Agent-to-Agent (A2A) Protocols](https://www.google.com/search?q=./docs/ecosystem/a2a.md)
+
+  - [Platform & Scalability Strategy](https://www.google.com/search?q=./docs/ecosystem/platform-strategy.md)
+
+  - [The Agent Economy Blueprint](https://www.google.com/search?q=./docs/ecosystem/agent-economy.md)
