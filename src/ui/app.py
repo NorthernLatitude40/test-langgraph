@@ -38,16 +38,41 @@ def run_ui(harness):
             # 引入 st.spinner 動畫
             with st.spinner("Harness 運行殼調度內核決策中..."):
                 try:
-                    # 🌟 核心修改點：直接呼叫 Harness 封裝好的簡潔業務接口
-                    # 為網頁端分配專屬的 thread_id，與 API 端完全隔絕
+                    # 🌟 1. 呼叫 Harness 接口拿到原始響應
                     final_reply = harness.interact(
                         user_message=user_query, thread_id="streamlit_default_user"
                     )
 
-                    # 將純文字結果直接呈現在 UI 上，並寫入歷史紀錄
-                    st.write(final_reply)
+                    # ----------------------------------------------------
+                    # 🛠️ 核心修改點：對 final_reply 進行安全拆包清洗
+                    # ----------------------------------------------------
+                    friendly_text = final_reply
+
+                    # 判斷拿到的資料是不是字串，如果是，嘗試用 JSON 解析它
+                    if isinstance(final_reply, str):
+                        import json
+
+                        try:
+                            parsed_data = json.loads(final_reply)
+                        except Exception:
+                            parsed_data = final_reply
+                    else:
+                        parsed_data = final_reply
+
+                    # 如果解析出來是一個 List，且包含了大模型的原始 text 欄位
+                    if isinstance(parsed_data, list) and len(parsed_data) > 0:
+                        first_item = parsed_data[0]
+                        if isinstance(first_item, dict) and "text" in first_item:
+                            friendly_text = first_item["text"]
+
+                    # ----------------------------------------------------
+
+                    # ✨ 2. 將清洗乾淨的純文字透過 markdown 呈現（可完美解析粗體、列表）
+                    st.markdown(friendly_text)
+
+                    # 🌟 注意：寫入歷史紀錄的也必須是清洗後的 friendly_text，否則下次重新渲染網頁又會噴出簽章
                     st.session_state.chat_history.append(
-                        {"role": "assistant", "content": final_reply}
+                        {"role": "assistant", "content": friendly_text}
                     )
 
                 except Exception as e:
