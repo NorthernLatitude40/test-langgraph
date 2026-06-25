@@ -14,7 +14,6 @@
   <img src="https://img.shields.io/badge/MCP-Enabled-purple?style=flat-square" alt="MCP">
 </p>
 
-
 <p align="center">
   Build next-generation AI agents powered by Ontology reasoning, 
   Knowledge Graphs, and the MCP (Model Context Protocol) tool ecosystem.
@@ -28,9 +27,9 @@ Traditional LLM agents often struggle with unresolvable hallucinations and untra
 
 User ──> Agent ──> Ontology (Schema) ──> Knowledge Graph ──> Reasoning ──> Tool Execution
 
-* **Explainable Reasoning:** Every tool invocation and decision is grounded by ontological constraints.
-* **Structured Knowledge Management:** Native alignment with Graph databases (Neo4j) for deep semantic memory.
-* **Scalable Workflows:** Flexible orchestration driven by state-of-the-art graph routing.
+- **Explainable Reasoning:** Every tool invocation and decision is grounded by ontological constraints.
+- **Structured Knowledge Management:** Native alignment with Graph databases (Neo4j) for deep semantic memory.
+- **Scalable Workflows:** Flexible orchestration driven by state-of-the-art graph routing.
 
 ---
 
@@ -38,8 +37,7 @@ User ──> Agent ──> Ontology (Schema) ──> Knowledge Graph ──> Rea
 
 OntoAgent adopts a layered architecture separating core reasoning, state workflows, and tool communication protocol.
 
-![architecture](C:\Users\ww\langgraph_workspace\docs\images\architecture.png)
-
+![architecture](docs/images/architecture.png)
 
 ---
 
@@ -117,16 +115,16 @@ Explore our detailed design specs and ecosystem strategy:
 
 🏛️ Architecture Overview
 
-  - [Model Context Protocol (MCP) Integration](https://www.google.com/search?q=./docs/architecture/mcp.md)
+- [Model Context Protocol (MCP) Integration](https://www.google.com/search?q=./docs/architecture/mcp.md)
 
-  - [Agent Core API Specs](https://www.google.com/search?q=./docs/architecture/agent-api.md)
+- [Agent Core API Specs](https://www.google.com/search?q=./docs/architecture/agent-api.md)
 
-  - [Web Application Integration](https://www.google.com/search?q=./docs/architecture/web-integration.md)
+- [Web Application Integration](https://www.google.com/search?q=./docs/architecture/web-integration.md)
 
 🌐 Ecosystem & Strategy
 
-  - [Agent-to-Agent (A2A) Protocols](https://www.google.com/search?q=./docs/ecosystem/a2a.md)
+- [Agent-to-Agent (A2A) Protocols](https://www.google.com/search?q=./docs/ecosystem/a2a.md)
 
-  - [Platform & Scalability Strategy](https://www.google.com/search?q=./docs/ecosystem/platform-strategy.md)
+- [Platform & Scalability Strategy](https://www.google.com/search?q=./docs/ecosystem/platform-strategy.md)
 
-  - [The Agent Economy Blueprint](https://www.google.com/search?q=./docs/ecosystem/agent-economy.md)
+- [The Agent Economy Blueprint](https://www.google.com/search?q=./docs/ecosystem/agent-economy.md)
