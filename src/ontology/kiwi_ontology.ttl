@@ -1,0 +1,35 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix kiwi: <http://kiwiexperience.com/ontology/> .
+
+kiwi:TourDeal a owl:Class ;
+    rdfs:label "Tour Deal" .
+
+kiwi:HopOnHopOffDeal a owl:Class ;
+    rdfs:subClassOf kiwi:TourDeal ;
+    rdfs:label "Hop On Hop Off Deal" .
+
+kiwi:City a owl:Class ;
+    rdfs:label "City" .
+
+kiwi:startsFrom a owl:ObjectProperty ;
+    rdfs:domain kiwi:TourDeal ;
+    rdfs:range kiwi:City .
+
+kiwi:endsAt a owl:ObjectProperty ;
+    rdfs:domain kiwi:TourDeal ;
+    rdfs:range kiwi:City .
+
+kiwi:durationDays a owl:DatatypeProperty ;
+    rdfs:domain kiwi:TourDeal ;
+    rdfs:range xsd:integer .
+
+kiwi:discountPercent a owl:DatatypeProperty ;
+    rdfs:domain kiwi:TourDeal ;
+    rdfs:range xsd:integer .
+
+kiwi:priceNZD a owl:DatatypeProperty ;
+    rdfs:domain kiwi:TourDeal ;
+    rdfs:range xsd:decimal .

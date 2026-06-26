@@ -30,7 +30,7 @@ def run_ui(harness):
     if user_query := st.chat_input("請輸入您的問題..."):
         # 立即將使用者的輸入渲染在網頁上，並寫入歷史紀錄
         with st.chat_message("user"):
-            st.write(user_query)
+            st.markdown(user_query)
         st.session_state.chat_history.append({"role": "user", "content": user_query})
 
         # 建立 AI 的對話氣泡
@@ -38,39 +38,16 @@ def run_ui(harness):
             # 引入 st.spinner 動畫
             with st.spinner("Harness 運行殼調度內核決策中..."):
                 try:
-                    # 🌟 1. 呼叫 Harness 接口拿到原始響應
-                    final_reply = harness.interact(
+                    # 🌟 1. 呼叫我們封裝好的「同步跨執行緒流式接口」取得生成器
+                    response_stream = harness.interact_stream_sync(
                         user_message=user_query, thread_id="streamlit_default_user"
                     )
 
-                    # ----------------------------------------------------
-                    # 🛠️ 核心修改點：對 final_reply 進行安全拆包清洗
-                    # ----------------------------------------------------
-                    friendly_text = final_reply
+                    # 🌟 2. 直接丟給 Streamlit 官方的原生流式組件
+                    # 它會自動動態渲染 Markdown（粗體、列表都支援），並像打字機一樣跳動
+                    friendly_text = st.write_stream(response_stream)
 
-                    # 判斷拿到的資料是不是字串，如果是，嘗試用 JSON 解析它
-                    if isinstance(final_reply, str):
-                        import json
-
-                        try:
-                            parsed_data = json.loads(final_reply)
-                        except Exception:
-                            parsed_data = final_reply
-                    else:
-                        parsed_data = final_reply
-
-                    # 如果解析出來是一個 List，且包含了大模型的原始 text 欄位
-                    if isinstance(parsed_data, list) and len(parsed_data) > 0:
-                        first_item = parsed_data[0]
-                        if isinstance(first_item, dict) and "text" in first_item:
-                            friendly_text = first_item["text"]
-
-                    # ----------------------------------------------------
-
-                    # ✨ 2. 將清洗乾淨的純文字透過 markdown 呈現（可完美解析粗體、列表）
-                    st.markdown(friendly_text)
-
-                    # 🌟 注意：寫入歷史紀錄的也必須是清洗後的 friendly_text，否則下次重新渲染網頁又會噴出簽章
+                    # 🌟 3. 將最終生成完畢的完整純文字寫入歷史紀錄
                     st.session_state.chat_history.append(
                         {"role": "assistant", "content": friendly_text}
                     )

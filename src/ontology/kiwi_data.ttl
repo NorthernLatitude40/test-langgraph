@@ -1,0 +1,124 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix kiwi: <http://kiwiexperience.com/ontology/> .
+
+# ==========================================
+# 地點實例定義
+# ==========================================
+kiwi:Auckland a kiwi:City ; rdfs:label "Auckland" .
+kiwi:Queenstown a kiwi:City ; rdfs:label "Queenstown" .
+kiwi:Wellington a kiwi:City ; rdfs:label "Wellington" .
+kiwi:Christchurch a kiwi:City ; rdfs:label "Christchurch" .
+kiwi:Anywhere a kiwi:City ; rdfs:label "Anywhere" .
+
+# ==========================================
+# 網頁 12 筆特惠行程數據
+# ==========================================
+
+# 1. BUZZY BEE
+kiwi:Deal_BuzzyBee a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Buzzy Bee" ;
+    kiwi:startsFrom kiwi:Auckland ;
+    kiwi:endsAt kiwi:Queenstown ;
+    kiwi:durationDays 13 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 986.00 .
+
+# 2. BAY EXPLORER
+kiwi:Deal_BayExplorer a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Bay Explorer" ;
+    kiwi:startsFrom kiwi:Auckland ;
+    kiwi:endsAt kiwi:Auckland ;
+    kiwi:durationDays 3 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 130.00 .
+
+# 3. GEYSERLAND
+kiwi:Deal_Geyserland a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Geyserland" ;
+    kiwi:startsFrom kiwi:Auckland ;
+    kiwi:endsAt kiwi:Auckland ;
+    kiwi:durationDays 4 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 290.00 .
+
+# 4. NORTHERN HIGHLIGHTS
+kiwi:Deal_NorthernHighlights a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Northern Highlights" ;
+    kiwi:startsFrom kiwi:Auckland ;
+    kiwi:endsAt kiwi:Wellington ;
+    kiwi:durationDays 6 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 473.00 .
+
+# 5. SKIPPY
+kiwi:Deal_Skippy a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Skippy" ;
+    kiwi:startsFrom kiwi:Queenstown ;
+    kiwi:endsAt kiwi:Queenstown ;
+    kiwi:durationDays 10 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 522.00 .
+
+# 6. NORTHERN ROUND UP
+kiwi:Deal_NorthernRoundUp a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Northern Round Up" ;
+    kiwi:startsFrom kiwi:Anywhere ;
+    kiwi:endsAt kiwi:Anywhere ;
+    kiwi:durationDays 9 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 629.00 .
+
+# 7. SOUTH AND SOUND
+kiwi:Deal_SouthAndSound a kiwi:HopOnHopOffDeal ;
+    rdfs:label "South And Sound" ;
+    kiwi:startsFrom kiwi:Anywhere ;
+    kiwi:endsAt kiwi:Anywhere ;
+    kiwi:durationDays 12 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 700.00 .
+
+# 8. KEA
+kiwi:Deal_Kea a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Kea" ;
+    kiwi:startsFrom kiwi:Wellington ;
+    kiwi:endsAt kiwi:Auckland ;
+    kiwi:durationDays 14 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 816.00 .
+
+# 9. SHEEPDOG
+kiwi:Deal_Sheepdog a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Sheepdog" ;
+    kiwi:startsFrom kiwi:Auckland ;
+    kiwi:endsAt kiwi:Christchurch ;
+    kiwi:durationDays 17 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 980.00 .
+
+# 10. FUNKY CHICKEN
+kiwi:Deal_FunkyChicken a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Funky Chicken" ;
+    kiwi:startsFrom kiwi:Anywhere ;
+    kiwi:endsAt kiwi:Anywhere ;
+    kiwi:durationDays 20 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 1154.00 .
+
+# 11. TOP & TAIL
+kiwi:Deal_TopAndTail a kiwi:HopOnHopOffDeal ;
+    rdfs:label "Top & Tail" ;
+    kiwi:startsFrom kiwi:Auckland ;
+    kiwi:endsAt kiwi:Christchurch ;
+    kiwi:durationDays 19 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 1176.00 .
+
+# 12. THE WHOLE KIT & CABOODLE
+kiwi:Deal_TheWholeKitAndCaboodle a kiwi:HopOnHopOffDeal ;
+    rdfs:label "The Whole Kit & Caboodle" ;
+    kiwi:startsFrom kiwi:Anywhere ;
+    kiwi:endsAt kiwi:Anywhere ;
+    kiwi:durationDays 23 ;
+    kiwi:discountPercent 30 ;
+    kiwi:priceNZD 1400.00 .

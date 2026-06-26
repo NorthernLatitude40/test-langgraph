@@ -173,72 +173,75 @@ def create_agent_order(
 
 
 @mcp.tool()
-def get_customer_products(name: str) -> list:
+def get_tour_deals_by_city(city_name: str) -> list:
     """
-    利用 n10s 本体推理，查询指定客户或全局概念的购买记录。
-    核心业务工具：查询客户（Customer/VIPCustomer等）与商品（Product/ElectronicProduct等）之间的购买记录。
-    支持传入具体人名（如 ZhangSan1），也支持传入全局概念名称（如 Customer 或 VIPCustomer）。
-    只要用户提问涉及“谁买了什么”、“哪些人买了什么商品”、“语义推理查询”，必须且只能调用此工具。
+    利用 n10s 本體推理，查詢指定城市出發或全局的紐西蘭旅遊特惠行程（Deals）。
+    核心業務工具：查詢城市（City）與巴士旅遊行程（TourDeal/HopOnHopOffDeal）之間的關聯。
+    支持傳入具體城市名（如 Auckland, Queenstown, Anywhere），也支持傳入全局概念名稱（如 City 或 TourDeal）。
+    只要用戶提問涉及“從哪裡出發有什麼行程”、“某城市的旅遊套裝”、“特惠行程查詢”，必須且只能調用此工具。
     """
     print("\n" + "=" * 50)
-    print(f"[LOG] 工具进入 - 目标名称: '{name}'")
+    print(f"[LOG] 工具進入 - 目標城市/概念: '{city_name}'")
 
-    search_name = name.strip()
+    search_name = city_name.strip()
 
-    # 转换为小写判断是否为全局本体概念
-    is_global_query = search_name.lower() in [
-        "customer",
-        "vipcustomer",
-        "product",
-        "electronicproduct",
-    ]
+    # 轉換為小寫判斷是否為全局本體概念查詢
+    is_global_query = search_name.lower() in ["city", "tourdeal", "hoponhopoffdeal"]
 
     if is_global_query:
-        print("[LOG] 判定结果: 全局本体概念推理")
+        print("[LOG] 判定結果: 全局本體概念推理 (撈取所有行程與城市的關聯)")
         query = """
-        // 1. 锁成本体中的基类 Customer 和 Product
-        MATCH (customerClass:owl__Class) WHERE customerClass.uri ENDS WITH "Customer"
-        MATCH (productClass:owl__Class) WHERE productClass.uri ENDS WITH "Product"
+        // 1. 鎖成本體中的基類 TourDeal 和 City
+        MATCH (dealClass:owl__Class) WHERE dealClass.uri ENDS WITH "TourDeal"
+        MATCH (cityClass:owl__Class) WHERE cityClass.uri ENDS WITH "City"
         
-        // 2. 找到它们所有的特化子类（*0.. 表示包含自身）
-        MATCH (subCustomerClass:owl__Class)-[:rdfs__subClassOf*0..]->(customerClass)
-        MATCH (subProductClass:owl__Class)-[:rdfs__subClassOf*0..]->(productClass)
+        // 2. 找到它們所有的特化子類（相容未來擴展的其他旅遊類型）
+        MATCH (subDealClass:owl__Class)-[:rdfs__subClassOf*0..]->(dealClass)
+        MATCH (subCityClass:owl__Class)-[:rdfs__subClassOf*0..]->(cityClass)
         
-        // 3. 修正 Cypher 语法：使用 split(str, delimiter)[-1] 提取末尾标签名
-        WITH split(subCustomerClass.uri, "/")[-1] AS subCustomerLabel, 
-             split(subProductClass.uri, "/")[-1] AS subProductLabel
+        // 3. 提取末尾標籤名
+        WITH split(subDealClass.uri, "/")[-1] AS subDealLabel, 
+             split(subCityClass.uri, "/")[-1] AS subCityLabel
         
-        // 4. 从子类名称反推具有该标签的实例节点并匹配购买关系
-        MATCH (c:Resource)-[r]->(p:Resource)
-        WHERE type(r) ENDS WITH "bought"
-          AND any(lbl IN labels(c) WHERE lbl ENDS WITH subCustomerLabel)
-          AND any(lbl IN labels(p) WHERE lbl ENDS WITH subProductLabel)
+        // 4. 反推實例並匹配出發關係，同時拉出價格、天數與折扣
+        MATCH (d:Resource)-[r]->(c:Resource)
+        WHERE type(r) ENDS WITH "startsFrom"
+          AND any(lbl IN labels(d) WHERE lbl ENDS WITH subDealLabel)
+          AND any(lbl IN labels(c) WHERE lbl ENDS WITH subCityLabel)
           
-        RETURN DISTINCT c.uri AS customer_uri, p.uri AS product_uri
+        RETURN DISTINCT d.rdfs__label AS deal_name, 
+                        c.rdfs__label AS city_name, 
+                        d.ns0__priceNZD AS price, 
+                        d.ns0__durationDays AS days,
+                        d.ns0__discountPercent AS discount
         """
         params = {}
     else:
-        print(f"[LOG] 判定结果: 具体实例精准查询 -> {search_name}")
+        print(f"[LOG] 判定结果: 具體城市精準查詢 -> {search_name}")
         query = """
-        MATCH (customerClass:owl__Class) WHERE customerClass.uri ENDS WITH "Customer"
-        MATCH (productClass:owl__Class) WHERE productClass.uri ENDS WITH "Product"
+        MATCH (dealClass:owl__Class) WHERE dealClass.uri ENDS WITH "TourDeal"
+        MATCH (cityClass:owl__Class) WHERE cityClass.uri ENDS WITH "City"
         
-        MATCH (subCustomerClass:owl__Class)-[:rdfs__subClassOf*0..]->(customerClass)
-        MATCH (subProductClass:owl__Class)-[:rdfs__subClassOf*0..]->(productClass)
+        MATCH (subDealClass:owl__Class)-[:rdfs__subClassOf*0..]->(dealClass)
+        MATCH (subCityClass:owl__Class)-[:rdfs__subClassOf*0..]->(cityClass)
         
-        // 修正 Cypher 语法：使用 split(str, delimiter)[-1]
-        WITH split(subCustomerClass.uri, "/")[-1] AS subCustomerLabel, 
-             split(subProductClass.uri, "/")[-1] AS subProductLabel
+        WITH split(subDealClass.uri, "/")[-1] AS subDealLabel, 
+             split(subCityClass.uri, "/")[-1] AS subCityLabel
         
-        MATCH (c:Resource)-[r]->(p:Resource)
-        WHERE type(r) ENDS WITH "bought"
-          AND (c.uri ENDS WITH $customer_name OR c.rdfs__label = $customer_name)
-          AND any(lbl IN labels(c) WHERE lbl ENDS WITH subCustomerLabel)
-          AND any(lbl IN labels(p) WHERE lbl ENDS WITH subProductLabel)
+        // 精準過濾出發城市名稱 (相容 URI 結尾或 rdfs__label)
+        MATCH (d:Resource)-[r]->(c:Resource)
+        WHERE type(r) ENDS WITH "startsFrom"
+          AND (c.uri ENDS WITH $city_name OR c.rdfs__label = $city_name)
+          AND any(lbl IN labels(d) WHERE lbl ENDS WITH subDealLabel)
+          AND any(lbl IN labels(c) WHERE lbl ENDS WITH subCityLabel)
           
-        RETURN DISTINCT c.uri AS customer_uri, p.uri AS product_uri
+        RETURN DISTINCT d.rdfs__label AS deal_name, 
+                        c.rdfs__label AS city_name, 
+                        d.ns0__priceNZD AS price, 
+                        d.ns0__durationDays AS days,
+                        d.ns0__discountPercent AS discount
         """
-        params = {"customer_name": search_name}
+        params = {"city_name": search_name}
 
     try:
         with driver.session() as session:
@@ -246,25 +249,32 @@ def get_customer_products(name: str) -> list:
             records_list = []
 
             for record in result:
-                c_uri = record["customer_uri"]
-                p_uri = record["product_uri"]
-                print(f"[LOG] 成功推理召回数据 -> 客户: {c_uri}, 商品: {p_uri}")
+                d_name = record["deal_name"]
+                c_name = record["city_name"]
+                price = record["price"]
+                days = record["days"]
+                discount = record["discount"]
 
-                # Python 层的 URI 清洗
-                c_name = c_uri.split("/")[-1] if "/" in c_uri else c_uri
-                p_name = p_uri.split("/")[-1] if "/" in p_uri else p_uri
+                print(
+                    f"[LOG] 成功推理召回數據 -> 行程: {d_name}, 出發地: {c_name}, 價格: {price} NZD"
+                )
 
+                # 組裝豐富的業務字串回傳給 Agent，讓 Agent 可以做進一步的答覆或篩選
                 if is_global_query:
-                    records_list.append(f"{c_name}(购买了){p_name}")
+                    records_list.append(
+                        f"行程:{d_name}(出發自:{c_name}) | 天數:{days}天 | 價格:{price}NZD | 折扣:{discount}%"
+                    )
                 else:
-                    records_list.append(p_name)
+                    records_list.append(
+                        f"行程:{d_name} | 天數:{days}天 | 價格:{price}NZD | 折扣:{discount}%"
+                    )
 
-            print(f"[LOG] 最终返回给 Agent 的数据: {records_list}")
+            print(f"[LOG] 最終返回給 Agent 的數據: {records_list}")
             print("=" * 50 + "\n")
             return records_list
 
     except Exception as e:
-        print(f"[ERROR] 执行失败: {str(e)}")
+        print(f"[ERROR] 執行失敗: {str(e)}")
         print("=" * 50 + "\n")
         return [f"ERROR: {str(e)}"]
 
