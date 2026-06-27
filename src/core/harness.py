@@ -11,7 +11,7 @@ from fastmcp import Client
 from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.tools import load_mcp_tools
 
-from core.agent import Agent
+from src.core.agent import Agent
 
 
 class AgentHarness:

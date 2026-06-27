@@ -5,6 +5,7 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 ANYTHINGLLM_BASE_URL = "http://localhost:3001/api/v1"
 ANYTHINGLLM_API_KEY = "xxxxx"
