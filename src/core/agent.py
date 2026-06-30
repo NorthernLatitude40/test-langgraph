@@ -14,7 +14,6 @@ from src.core.tools import get_weather, search_official_knowledge_base
 from src.core.workflow import DynamicGraphCompiler
 
 
-
 class State(TypedDict):
     messages: Annotated[list, add_messages]
 
@@ -27,7 +26,7 @@ class Agent:
         # 💡 將熔斷標記綁定在實例上，避免多用戶併發時互相干擾
         self.gemini_available = True
 
-        self.app = None
+        self.app = self._build_graph()  # 光速建立一個最簡單的圖：START -> llm -> END
         self.compiler = DynamicGraphCompiler(state_schema=State)
 
     def _model(self):
@@ -147,11 +146,13 @@ class Agent:
         """
         print("收到 UI 新的畫布結構，開始重新編譯...")
         # 動態編譯並直接覆蓋舊的 app
-        self.app = self.compiler.compile_from_json(ui_graph_json, tools_list=tools_list, model=model)
+        self.app = self.compiler.compile_from_json(
+            ui_graph_json, tools_list=tools_list, model=model
+        )
 
     async def ainvoke(self, inputs, config):
         if not self.app:
             raise ValueError("請先從 UI 畫布編譯並部署工作流！")
-        
+
         # 執行當前由畫布生成的最新工作流
         return await self.app.ainvoke(inputs, config)

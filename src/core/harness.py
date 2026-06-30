@@ -84,9 +84,16 @@ class AgentHarness:
         inputs = {"messages": [("user", user_message)]}
         config = {"configurable": {"thread_id": thread_id}}
 
-        future = asyncio.run_coroutine_threadsafe(
-            self.agent_core.app.ainvoke(inputs, config), self.loop
-        )
+        # future = asyncio.run_coroutine_threadsafe(
+        #     self.agent_core.app.ainvoke(inputs, config), self.loop
+        # )
+        # 舊寫法： 提前把舊圖的 ainvoke 抓出來當成參數打包，導致重新構建後，被打包的舊圖在 Thread 裡「與世隔絕」地執行。
+
+        # 新寫法： 把 self.agent_core 這個大容器傳進去，讓它在事件循環的 Thread 裡「要執行的那一瞬間」才去 self.agent_core.app 拔取最新的圖。
+        async def call_wrapper():
+            return await self.agent_core.app.ainvoke(inputs, config)
+
+        future = asyncio.run_coroutine_threadsafe(call_wrapper(), self.loop)
         result = future.result()
         return result["messages"][-1].content
 
